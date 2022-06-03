@@ -171,6 +171,48 @@ for train_index, test_index in tscv.split(X, y):
     RMSE.append(np.sqrt(mean_squared_error(y_test, preds)))
     
 #%%
+print(RMSE)
+
+
+from data.base import get_test_data
+test_data = get_test_data()
+y_val = test_data['transactionLocal_VAT_beforeDiscount']
+X_val = test_data.drop('transactionLocal_VAT_beforeDiscount',axis=1).to_numpy()
+
+print(test_data.shape)
+
+
+final_preds = xgb_reg.predict(X_val)
+#%%
+RMSE_final = np.sqrt(mean_squared_error(y_val,final_preds))
+
+comp = np.array([final_preds, y_val])
+print(RMSE_final)
+
+
+#%%
+
+K1 = 5
+
+RMSE = []
+tscv = TimeSeriesSplit(n_splits = K1)
+
+for train_index, test_index in tscv.split(X,y):
+    Xtrain = X[train_index]
+    Xtest = X[test_index]
+    ytrain = y[train_index]
+    ytest = y[test_index]
+        
+    RFR = RandomForestRegressor(n_estimators = 100, criterion = "squared_error", min_samples_split = 10, min_samples_leaf = 2)
+    RFR.fit(Xtrain,ytrain)
+    preds = RFR.predict(Xtest)
+    
+    RMSE.append(np.sqrt(mean_squared_error(ytest, preds)))
+    
+
+#%%
+final_preds_rf = RFR.predict(X_val)
+RMSE = np.sqrt(mean_squared_error(y_val, final_preds))
 
 
 #%%   USE HYPERPARAMETERS AND ESTIMATE RMSE    
