@@ -108,5 +108,6 @@ def get_data():
     holidays = [x for x in df2.columns if 'Holiday' in x]
     df2[holidays] = df2[holidays].fillna(0).copy()
     df2.dropna(inplace = True)
+    df2 = pd.get_dummies(df2)
 
     return df2
