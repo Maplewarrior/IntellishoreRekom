@@ -17,13 +17,16 @@ from data.base import get_data
 data = get_data()
 print(data.shape)
 
-#%%
+
 
 # print(data.shape)
 
 attributeNames = list(data.columns)
 
-drop = ["id_onlinepos", "city","country", "id_density", "function", "time_zone", "sensors_total", "safe_capacity", "target_capacity", "venueName_x", "venueName_y"]
+drop = ["id_onlinepos", "city","country", "id_density_x", "id_density_y", "function", "time_zone", "sensors_total", "safe_capacity", "target_capacity", "venueName_x", "venueName_y"]
+
+data = data.drop(drop, axis = 1)
+
 
 print(len(drop))
 #%%
@@ -32,9 +35,10 @@ y = y.to_numpy()
 X = data.drop('transactionLocal_VAT_beforeDiscount', axis = 1)
 X = X.to_numpy()
 
+X = X[:1000, :]
+y = y[:1000]
 
 
-#%%
 
 
 #%%
@@ -76,9 +80,69 @@ for train_index, test_index in tscv.split(X,y):
 
 #%%
 
-    
+n_estimators_xgb = tuple(np.arange(50,500,50, dtype= np.int))
+# print(n_estimators)
+max_depth_xgb = tuple(np.arange(10,110,10, dtype= np.int))
+gamma_xgb = tuple(np.arange(1,10,1))
+min_child_weight_xgb = tuple(np.arange(0,10,1, dtype=np.int))
+reg_lambda_xgb = tuple(np.arange(0.01, 0.99, 0.01))
+reg_alpha_xgb = tuple(np.arange(40, 180, 1,dtype=np.int))
+subsample_xgb = tuple(np.arange(0.01, 0.99, 0.01))
+
+
+# domain_xgb = {'max_depth': hp.quniform("max_depth", 3, 18, 1),
+#         'gamma': hp.uniform ('gamma', 1,9),
+#         'reg_alpha' : hp.quniform('reg_alpha', 40, 180,1),
+#         'reg_lambda' : hp.uniform('reg_lambda', 0.01, 0.99),
+#         'colsample_bytree' : hp.uniform('colsample_bytree', 0.01,0.8),
+#         'min_child_weight' : hp.quniform('min_child_weight', 0, 10, 1),
+#         'eta': hp.uniform('eta', 0.01, 0.11),
+#         'n_estimators': hp.quniform('n_estimators', 50, 250, 1),
+#         'subsample': hp.uniform('subsample', 0.01, 0.99),
+#         'seed': 0
+#     }
+
+domain_xgb = [{'name': 'n_estimators', 'type': 'discrete', 'domain':n_estimators_xgb},
+          {'name': 'max_depth', 'type': 'discrete', 'domain': max_depth_xgb},
+          {'name': 'min_child_weight', 'type': 'discrete', 'domain': min_child_weight_xgb},
+          {'name': 'gamma', 'type': 'discrete', 'domain': gamma_xgb},
+          {'name': 'alpha', 'type': 'discrete', 'domain': reg_alpha_xgb}]
+          # {'name': 'x', 'type': 'discrete', 'domain': },
+          # {'name': 'x', 'type': 'discrete', 'domain': },
+          # {'name': 'x', 'type': 'discrete', 'domain': }]
+
+
 xgb_reg = xgb.XGBRegressor(n_estimators=1000)
-xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=False)
+# xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=False)
+
+
+def objective_xgb(x):
+    param = x[0]
+    
+    model = xgb.XGBRegressor(n_estimators=int(param[0]), max_depth = int(param[1]), min_child_weight = int(param[2]), gamma = int(param[3]), alpha = int(param[4]))
+
+    model.fit(Xtrain, ytrain)    
+    
+    preds = model.predict(Xtest)
+    
+    RMSE = np.sqrt(mean_squared_error(ytest, preds))
+    
+    return RMSE
+
+opt = GPyOpt.methods.BayesianOptimization(f = objective_xgb,   # function to optimize
+                                              domain = domain_xgb,         # box-constrains of the problem
+                                              acquisition_type = 'EI' ,      # Select acquisition function MPI, EI, LCB
+                                             )
+opt.acquisition.exploration_weight=0.5
+
+opt.run_optimization(max_iter = 15) 
+
+x_best = opt.X[np.argmin(opt.Y)]
+print("The best parameters obtained: n_estimators=" + str(x_best[0]) + ", max_depth=" + str(x_best[1]) + ", max_features=" + str(
+    x_best[2])  + ", criterion=" + str(
+    x_best[3]))
+    
+    
 
 #%%
 
@@ -115,10 +179,14 @@ def objective_rf(x):
         crit = "squared_error"
         
     
-    model = RandomForestRegressor(int(param[0]), max_depth = int(param[1]), max_features = max_f, criterion = crit, njobs = -1)
+    model = RandomForestRegressor(int(param[0]), max_depth = int(param[1]), max_features = max_f, criterion = crit, n_jobs = -1)
     
     model.fit(Xtrain,ytrain)
     
+    preds = model.predict(Xtest)
+    
+    RMSE = np.sqrt(mean_squared_error(ytest, preds))
+    return RMSE
     
 
 
@@ -126,4 +194,14 @@ opt = GPyOpt.methods.BayesianOptimization(f = objective_rf,   # function to opti
                                               domain = domain_rf,         # box-constrains of the problem
                                               acquisition_type = 'EI' ,      # Select acquisition function MPI, EI, LCB
                                              )
-    
+opt.acquisition.exploration_weight=0.5
+
+opt.run_optimization(max_iter = 15) 
+
+x_best = opt.X[np.argmin(opt.Y)]
+print("The best parameters obtained: n_estimators=" + str(x_best[0]) + ", max_depth=" + str(x_best[1]) + ", max_features=" + str(
+    x_best[2])  + ", criterion=" + str(
+    x_best[3]))
+        
+#%%
+# Plot acquisition function
