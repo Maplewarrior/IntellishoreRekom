@@ -85,5 +85,9 @@ def get_data():
     df = df.merge(df_id, how="left", left_on="global_venueName", right_on="venueName")
     df = df.merge(df_plan, how="left", left_on=["global_venueName", "transaction_hour"],
                   right_on=["venueName", "starthour_rounded"])
+    df['weekday'] = pd.to_datetime(df["date_rekom"]).dt.dayofweek
+    df['month'] = pd.to_datetime(df["date_rekom"]).dt.month
+    df['year'] = pd.to_datetime(df["date_rekom"]).dt.year
+    df['week'] = pd.to_datetime(df["date_rekom"]).dt.isocalendar().week
 
     return df
