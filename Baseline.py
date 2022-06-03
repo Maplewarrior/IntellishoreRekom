@@ -29,6 +29,7 @@ data = data.drop(drop, axis = 1)
 
 
 print(len(drop))
+
 #%%
 y = data['transactionLocal_VAT_beforeDiscount'][:]
 y = y.to_numpy()
