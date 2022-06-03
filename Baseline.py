@@ -12,16 +12,39 @@ from sklearn.model_selection import TimeSeriesSplit
 
 import GPyOpt
 
+
+from data.base import get_data
+data = get_data()
+print(data.shape)
+
 #%%
-X = np.ones(10)
-y = np.zeros(10)
+
+# print(data.shape)
+
+attributeNames = list(data.columns)
+
+drop = ["id_onlinepos", "city","country", "id_density", "function", "time_zone", "sensors_total", "safe_capacity", "target_capacity", "venueName_x", "venueName_y"]
+
+print(len(drop))
+#%%
+y = data['transactionLocal_VAT_beforeDiscount'][:]
+y = y.to_numpy()
+X = data.drop('transactionLocal_VAT_beforeDiscount', axis = 1)
+X = X.to_numpy()
+
+
+
+#%%
+
+
+#%%
+
 K1 = 5
 
 RMSE = []
 tscv = TimeSeriesSplit(n_splits = K1)
 
-
-for train_index, test_index in tscv(X,y):
+for train_index, test_index in tscv.split(X,y):
     Xtrain = X[train_index]
     Xtest = X[test_index]
     ytrain = y[train_index]
@@ -35,7 +58,7 @@ for train_index, test_index in tscv(X,y):
     
 
 
-
+#%%
 
 ### Parameters for a gridsearch if we want that :) 
 
