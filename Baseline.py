@@ -10,7 +10,7 @@ from sklearn.metrics import mean_squared_error
 
 from sklearn.model_selection import TimeSeriesSplit
 
-
+import GPyOpt
 
 #%%
 X = np.ones(10)
@@ -61,15 +61,46 @@ xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], e
 
 
 ### BAYESIAN OPTIMIZATION ###
-n_estimators = tuple(np.arange(1,101,1, dtype= np.int))
+n_estimators_rf = tuple(np.arange(1,101,1, dtype= np.int))
 # print(n_estimators)
-max_depth = tuple(np.arange(10,110,10, dtype= np.int))
+max_depth_rf = tuple(np.arange(10,110,10, dtype= np.int))
 # max_features = ('log2', 'sqrt', None)
-max_features = (0, 1)
-# criterion = ('gini', 'entropy')
-criterion = (0, 1)
+max_features_rf = (0, 1)
+# criterion = (squared_error, absolute_error)
+criterion_rf = (0, 1)
 
-# domain_rf = [{'name': 'n_estimators', 'type': 'discrete', 'domain':n_estimators_rf},
-#           {'name': 'max_depth', 'type': 'discrete', 'domain': max_depth_rf},
-#           {'name': 'max_features', 'type': 'categorical', 'domain': max_features_rf},
-#           {'name': 'criterion', 'type': 'categorical', 'domain': criterion_rf}]
+domain_rf = [{'name': 'n_estimators', 'type': 'discrete', 'domain':n_estimators_rf},
+          {'name': 'max_depth', 'type': 'discrete', 'domain': max_depth_rf},
+          {'name': 'max_features', 'type': 'categorical', 'domain': max_features_rf},
+          {'name': 'criterion', 'type': 'categorical', 'domain': criterion_rf}]
+
+def objective_rf(x):
+    param = x[0]
+    
+    if param[2] == 0:
+        max_f = 'log2'
+        
+    elif param[2] == 1:
+        max_f = 'sqrt'
+    
+    else:
+        max_f = None
+    
+    if param[3] == 1:
+        crit = "absolute_error"
+    else:
+        crit = "squared_error"
+        
+    
+    model = RandomForestRegressor(int(param[0]), max_depth = int(param[1]), max_features = max_f, criterion = crit, njobs = -1)
+    
+    model.fit(Xtrain,ytrain)
+    
+    
+
+
+opt = GPyOpt.methods.BayesianOptimization(f = objective_rf,   # function to optimize
+                                              domain = domain_rf,         # box-constrains of the problem
+                                              acquisition_type = 'EI' ,      # Select acquisition function MPI, EI, LCB
+                                             )
+    
