@@ -15,21 +15,21 @@ import GPyOpt
 
 from data.base import get_data
 data = get_data()
-print(data.shape)
 
 
 
-# print(data.shape)
 
-attributeNames = list(data.columns)
+# # print(data.shape)
 
-drop = ["id_onlinepos", "city","country", "id_density_x", "id_density_y", "function", "time_zone", "sensors_total", "safe_capacity", "target_capacity", "venueName_x", "venueName_y"]
+# attributeNames = list(data.columns)
 
-data = data.drop(drop, axis = 1)
+# drop = ["id_onlinepos", "city","country", "id_density_x", "id_density_y", "function", "time_zone", "sensors_total", "safe_capacity", "target_capacity", "venueName_x", "venueName_y"]
+
+# data = data.drop(drop, axis = 1)
 
 
-print(len(drop))
-#%%
+##### Get X and y ####
+# #%%
 y = data['transactionLocal_VAT_beforeDiscount'][:]
 y = y.to_numpy()
 X = data.drop('transactionLocal_VAT_beforeDiscount', axis = 1)
@@ -41,26 +41,37 @@ y = y[:1000]
 
 
 
-#%%
+#%% RANDON FOREST REGRESSOR
 
 K1 = 5
 
 RMSE = []
 tscv = TimeSeriesSplit(n_splits = K1)
 
-for train_index, test_index in tscv.split(X,y):
-    Xtrain = X[train_index]
-    Xtest = X[test_index]
-    ytrain = y[train_index]
-    ytest = y[test_index]
+# for train_index, test_index in tscv.split(X,y):
+#     Xtrain = X[train_index]
+#     Xtest = X[test_index]
+#     ytrain = y[train_index]
+#     ytest = y[test_index]
         
-    RFR = RandomForestRegressor(n_estimators = 100, criterion = "squared_error", min_samples_split = 10, min_samples_leaf = 2)
-    RFR.fit(Xtrain,ytrain)
-    preds = RFR.predict(Xtest)
+#     RFR = RandomForestRegressor(n_estimators = 100, criterion = "squared_error", min_samples_split = 10, min_samples_leaf = 2)
+#     RFR.fit(Xtrain,ytrain)
+#     preds = RFR.predict(Xtest)
     
-    RMSE.append(np.sqrt(mean_squared_error(ytest, preds)))
+#     RMSE.append(np.sqrt(mean_squared_error(ytest, preds)))
     
+#%%  XGBOOST
 
+for train_index, test_index in tscv.split(X,y):
+    X_train = X[train_index]
+    X_test = X[test_index]
+    y_train = y[train_index]
+    y_test = y[test_index]
+    
+    xgb_reg = xgb.XGBRegressor(n_estimators=1000, enable_categorical = True)
+    xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=False)
+    
+    
 
 #%%
 
@@ -78,7 +89,10 @@ for train_index, test_index in tscv.split(X,y):
 # preds = RFR.predict(Xtest)
 # RMSE = np.sqrt(mean_squared_error(ytest, preds))
 
-#%%
+
+
+
+#%% XGBOOST BAYESIAN OPTIMIZATION
 
 n_estimators_xgb = tuple(np.arange(50,500,50, dtype= np.int))
 # print(n_estimators)
