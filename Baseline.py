@@ -16,6 +16,11 @@ import GPyOpt
 from data.base import get_data
 data = get_data()
 
+
+#%%
+print(data.shape)
+# print(sum(data.isnull()))
+#%%
 # # print(data.shape)
 
 # attributeNames = list(data.columns)
@@ -43,6 +48,12 @@ X = X.to_numpy()
 
 
 #%% XGBOOST BAYESIAN OPTIMIZATION
+np.random.seed(123)
+K1 = 2
+
+RMSE = []
+tscv = TimeSeriesSplit(n_splits = K1)
+
 
 n_estimators_xgb = tuple(np.arange(50,1000,10, dtype= np.int))
 # print(n_estimators)
@@ -76,7 +87,7 @@ domain_xgb = [{'name': 'n_estimators', 'type': 'discrete', 'domain':n_estimators
           # {'name': 'x', 'type': 'discrete', 'domain': }]
 
 
-xgb_reg = xgb.XGBRegressor(n_estimators=1000)
+# xgb_reg = xgb.XGBRegressor(n_estimators=1000)
 # xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=False)
 
 
@@ -93,28 +104,55 @@ def objective_xgb(x):
     
     return RMSE
 
-opt = GPyOpt.methods.BayesianOptimization(f = objective_xgb,   # function to optimize
+count = 0
+for train_index, test_index in tscv.split(X,y):
+    X_train = X[train_index]
+    X_test = X[test_index]
+    y_train = y[train_index]
+    y_test = y[test_index]
+    
+    count += 1
+    print(count)
+    opt = GPyOpt.methods.BayesianOptimization(f = objective_xgb,   # function to optimize
                                               domain = domain_xgb,         # box-constrains of the problem
-                                              acquisition_type = 'EI' ,      # Select acquisition function MPI, EI, LCB
+                                              acquisition_type = 'EI' ,verbose = True      # Select acquisition function MPI, EI, LCB
                                              )
-opt.acquisition.exploration_weight=0.5
+    print(count)
+    opt.acquisition.exploration_weight=0.5
 
-opt.run_optimization(max_iter = 15) 
+    opt.run_optimization(max_iter = 15) 
 
-x_best = opt.X[np.argmin(opt.Y)]
-print("The best parameters obtained: n_estimators=" + str(x_best[0]) + ", max_depth=" + str(x_best[1]) + ", min_child_weight=" + str(
+    x_best = opt.X[np.argmin(opt.Y)]
+    print("The best parameters obtained: n_estimators=" + str(x_best[0]) + ", max_depth=" + str(x_best[1]) + ", min_child_weight=" + str(
     x_best[2])  + ", gamma=" + str(x_best[3]), "alpha=" + str(x_best[4]))
+    
     
     
 
 #%% GET FINAL PREDICTIONS
-n_estimators = int(x_best[0])
-max_depth = int(x_best[1])
-min_child_weights = int(x_best[2])
-gamma = (x_best[3])
-alpha = (x_best[4])
+"""
+The optimal hyperparameters were found to be:
+    n_estimators = 500
+    max_depth = 40
+    min_child_weights = 9
+    gamma = 
+    alpha = 
+"""
 
-K1 = 1
+
+# np.random.seed(123)
+# n_estimators = int(x_best[0])
+# max_depth = int(x_best[1])
+# min_child_weights = int(x_best[2])
+# gamma = (x_best[3])
+# alpha = (x_best[4])
+n_estimators = 500
+max_depth = 40
+# min_child_weights = 9
+gamma = 10
+alpha = 5
+
+K1 = 2
 
 RMSE = []
 tscv = TimeSeriesSplit(n_splits = K1)
@@ -125,16 +163,17 @@ for train_index, test_index in tscv.split(X, y):
     y_train = y[train_index]
     y_test = y[test_index]
     
-    xgb_reg = xgb.XGBRegressor(n_estimators=n_estimators, max_depth=max_depth, min_child_weights=min_child_weights, gamma=gamma, alpha=alpha)
-    xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=False, eval_metric = "rmse")
+    xgb_reg = xgb.XGBRegressor(n_estimators=n_estimators, max_depth=max_depth,  gamma=gamma, alpha=alpha)
+    xgb_reg.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50, verbose=True, eval_metric = "rmse")
     
     preds = xgb_reg.predict(X_test)
     
     RMSE.append(np.sqrt(mean_squared_error(y_test, preds)))
+    
+#%%
+
+
 #%%   USE HYPERPARAMETERS AND ESTIMATE RMSE    
-
-
-
 
 K1 = 5
 
