@@ -89,5 +89,20 @@ def get_data():
     df['month'] = pd.to_datetime(df["date_rekom"]).dt.month
     df['year'] = pd.to_datetime(df["date_rekom"]).dt.year
     df['week'] = pd.to_datetime(df["date_rekom"]).dt.isocalendar().week
+    features = ["transactionLocal_VAT_beforeDiscount", "hour", "global_venueName", "zip_code", "clusterCategoryJoined", "m2_salesArea", "m2_nonSalesArea", "temp", "feelslike", "precip", "precipprob", "windgust", "cloudcover", "solarradiation","conditions", 'Holiday Name_Ascension Day', 'Holiday Name_Bank Holiday',
+       'Holiday Name_Christmas Day', 'Holiday Name_Christmas Eve Day',
+       'Holiday Name_Constitution Day', 'Holiday Name_Easter Monday',
+       "Holiday Name_Father's Day", 'Holiday Name_General Prayer Day',
+       'Holiday Name_Good Friday', 'Holiday Name_Labour Day',
+       'Holiday Name_Maundy Thursday', "Holiday Name_Mother's Day",
+       "Holiday Name_New Year's Day", "Holiday Name_New Year's Eve",
+       'Holiday Name_Pentecost Sunday', 'Holiday Name_Second Day of Christmas',
+       'Holiday Name_Whit Monday', "capacity", "weekday", "month", "week", "year"]
 
-    return df
+    df2 = df[features]
+    df2["weekday"] = df2["weekday"].astype(str)
+    df2["month"] = df2["month"].astype(str)
+    df2["week"] = df2["week"].astype(str)
+    df2["year"] = df2["year"].astype(str)
+
+    return df2
