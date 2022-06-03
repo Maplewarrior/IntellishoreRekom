@@ -103,7 +103,7 @@ opt.run_optimization(max_iter = 15)
 
 x_best = opt.X[np.argmin(opt.Y)]
 print("The best parameters obtained: n_estimators=" + str(x_best[0]) + ", max_depth=" + str(x_best[1]) + ", min_child_weight=" + str(
-    x_best[2])  + ", gamma=" + str(x_best[3]), "alpha" + str(x_best[4]))
+    x_best[2])  + ", gamma=" + str(x_best[3]), "alpha=" + str(x_best[4]))
     
     
 
