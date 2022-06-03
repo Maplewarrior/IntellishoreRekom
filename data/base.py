@@ -97,17 +97,19 @@ def get_data():
        'Holiday Name_Maundy Thursday', "Holiday Name_Mother's Day",
        "Holiday Name_New Year's Day", "Holiday Name_New Year's Eve",
        'Holiday Name_Pentecost Sunday', 'Holiday Name_Second Day of Christmas',
-       'Holiday Name_Whit Monday', "capacity", "weekday", "month", "week", "year"]
+       'Holiday Name_Whit Monday', "capacity", "weekday", "month", "week", "year", "transaction_hour"]
 
     df2 = df[features]
     df2["weekday"] = df2["weekday"].astype(str)
     df2["month"] = df2["month"].astype(str)
     df2["week"] = df2["week"].astype(str)
     df2["year"] = df2["year"].astype(str)
+    df2.set_index("transaction_hour", inplace = True, drop = True)
     
     holidays = [x for x in df2.columns if 'Holiday' in x]
     df2[holidays] = df2[holidays].fillna(0).copy()
     df2.dropna(inplace = True)
     df2 = pd.get_dummies(df2)
+    df2 = df2.sort_index()
 
     return df2
